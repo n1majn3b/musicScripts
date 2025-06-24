@@ -1,0 +1,7 @@
+FFMPEG.exe - audio analyzier , converter etc.
+
+MusicBrainz Picard - Audio Name Finder and Metadata modifier
+
+freac - free audio converter (realy useful to for eg convert into .wav) 
+
+Spek - free Audio Analyzer
