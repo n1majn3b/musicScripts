@@ -15,78 +15,83 @@ if ($folderDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
     }
 
     $tempOut = "$env:TEMP\ffmpeg_output.txt"
-    $toNormalize = @()
-
-    Write-Host "`n--- Loudness Analysis ---"
-
-    foreach ($file in $wavFiles) {
-        #@p Run ffmpeg loudness analysis per file
-        $cmd = "ffmpeg -hide_banner -i `"$($file.FullName)`" -af loudnorm=I=-14:TP=-1.0:LRA=11:print_format=summary -f null - > `"$tempOut`" 2>&1"
-        cmd /c $cmd
-
-        $lines = Get-Content $tempOut
-        $matchLine = $lines | Where-Object { $_ -match 'Input Integrated' }
-
-        if (-not $matchLine) {
-            Write-Host "$($file.Name):  [No 'Input Integrated' line found]"
-            Write-Host "Excerpt from ffmpeg output:"
-            $lines | Select-String 'loudnorm|LUFS|Integrated' | ForEach-Object { Write-Host "  $_" }
-            continue
-        }
-
-        $lufsRaw = $matchLine -replace '[^\-0-9\.]', '' | Select-Object -First 1
-
-        try {
-            $lufs = [double]$lufsRaw
-            $diff = [math]::Round($lufs + 14, 2)
-            if ($diff -gt 0) {
-                Write-Host "$($file.Name): $lufs LUFS ($diff dB too quiet)"
-                $toNormalize += [PSCustomObject]@{
-                    File = $file
-                    LUFS = $lufs
-                    Diff = $diff
-                }
-            } else {
-                Write-Host "$($file.Name): $lufs LUFS (OK)"
-            }
-        } catch {
-            Write-Host "$($file.Name):  [Could not convert LUFS: '$lufsRaw']"
-            Write-Host "Excerpt from ffmpeg output:"
-            $lines | Select-String 'loudnorm|LUFS|Integrated' | ForEach-Object { Write-Host "  $_" }
-        }
-    }
-
-    if ($toNormalize.Count -eq 0) {
-        Write-Host "`nAll tracks are loud enough. No normalization needed."
-        Pause
-        return
-    }
-
-    Write-Host "`nThe following files are below -14 LUFS and will be normalized:"
-    $toNormalize | ForEach-Object { Write-Host "$($_.File.Name): $($_.LUFS) LUFS ($($_.Diff) dB too quiet)" }
-
-    $confirm = Read-Host "`nNormalize all listed files to -14 LUFS? (y/n)"
-    if ($confirm -ne "y") {
-        Write-Host "Normalization canceled."
-        Pause
-        return
-    }
-
-    $outputFolder = Join-Path $folderPath "normalizedAudioFiles"
+    $outputFolder = Join-Path $folderPath "normalizedClubTracks"
     if (-not (Test-Path $outputFolder)) {
         New-Item -Path $outputFolder -ItemType Directory | Out-Null
     }
 
-    foreach ($entry in $toNormalize) {
-        $inFile = $entry.File.FullName
-        $outFile = Join-Path $outputFolder $entry.File.Name
-        $normCmd = "ffmpeg -i `"$inFile`" -af loudnorm=I=-14:TP=-1.0:LRA=11 `"$outFile`""
-        Write-Host "`nNormalizing $($entry.File.Name)..."
-        cmd /c $normCmd
-        Write-Host "Saved to: $outFile"
+    Write-Host "`n--- Club Loudness Analysis ---"
+
+    foreach ($file in $wavFiles) {
+        #@p Run ffmpeg loudness analysis
+        $cmd = "ffmpeg -hide_banner -i `"$($file.FullName)`" -af loudnorm=I=-14:TP=-1.0:LRA=11:print_format=summary -f null - > `"$tempOut`" 2>&1"
+        cmd /c $cmd
+        $lines = Get-Content $tempOut
+
+        #@p Extract loudness data
+        $data = @{
+            LUFS = $null
+            TP   = $null
+            LRA  = $null
+            THRESH = $null
+        }
+
+        foreach ($line in $lines) {
+            if ($line -match "Input Integrated:\s+(-?\d+(\.\d+)?) LUFS") {
+                $data.LUFS = [double]$matches[1]
+            }
+            elseif ($line -match "Input True Peak:\s+(-?\d+(\.\d+)?) dBTP") {
+                $data.TP = [double]$matches[1]
+            }
+            elseif ($line -match "Input LRA:\s+(-?\d+(\.\d+)?) LU") {
+                $data.LRA = [double]$matches[1]
+            }
+            elseif ($line -match "Input Threshold:\s+(-?\d+(\.\d+)?) LUFS") {
+                $data.THRESH = [double]$matches[1]
+            }
+        }
+
+        #@p Print results
+        Write-Host "`n$file"
+        Write-Host "  LUFS:     $($data.LUFS) LUFS"
+        Write-Host "  TP:       $($data.TP) dBTP"
+        Write-Host "  LRA:      $($data.LRA) LU"
+        Write-Host "  Threshold:$($data.THRESH) LUFS"
+
+        #@p Club standard checks with ±2 LUFS tolerance
+        $minLUFS = -8
+        $maxLUFS = -4
+
+        $lufsOK = ($data.LUFS -ge $minLUFS -and $data.LUFS -le $maxLUFS)
+        $tpOK   = ($data.TP -le -1.0)
+        $lraOK  = ($data.LRA -le 11)
+
+        if (-not $data.LUFS -or -not $data.TP) {
+            Write-Host "  -> Could not extract full loudness data. Skipping normalization offer."
+            continue
+        }
+
+        if ($lufsOK -and $tpOK -and $lraOK) {
+            Write-Host "  -> Track is already optimized for club DJ use."
+        } else {
+            Write-Host "  -> This track is not fully optimized for club use."
+
+            $answer = Read-Host "Normalize this track to Club DJ standard (-6 LUFS, TP -1.0 dBTP, LRA 9)? (y/n)"
+            if ($answer -eq "y") {
+                $outFile = Join-Path $outputFolder $file.Name
+
+                #@p Normalize to club loudness level
+                $normCmd = "ffmpeg -i `"$($file.FullName)`" -af loudnorm=I=-6:TP=-1.0:LRA=9 `"$outFile`""
+                Write-Host "  Normalizing..."
+                cmd /c $normCmd
+                Write-Host "  Saved to: $outFile"
+            } else {
+                Write-Host "  -> Skipping normalization."
+            }
+        }
     }
 
-    Write-Host "`nAll selected files normalized and saved in:`n$outputFolder"
+    Write-Host "`nDone. Check 'normalizedClubTracks' folder if any tracks were processed."
     Pause
 } else {
     Write-Host "No folder selected."
