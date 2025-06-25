@@ -1,0 +1,7 @@
+check all scripts if they optimizer to  the correct values,
+
+only optimize the lufs maybe? 
+
+analysis works fine fot the most, what should be optimized? 
+
+also removew clipping from files if thewy have any (during optimization)
