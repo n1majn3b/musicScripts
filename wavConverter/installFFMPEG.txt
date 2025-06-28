@@ -1,0 +1,31 @@
+Windows
+Download FFmpeg
+Go to: https://ffmpeg.org/download.html
+→ Click on Windows builds → Choose gpl and download the zip file.
+
+Extract FFmpeg
+Extract the ZIP archive to e.g.:
+C:\ffmpeg
+
+Set Environment Path
+
+Open System Properties → Advanced → Environment Variables
+
+Under System Variables, find and select Path, click Edit
+
+Click New, add:
+
+makefile
+Kopieren
+Bearbeiten
+C:\ffmpeg\bin
+Click OK to close all dialogs.
+
+Test Installation
+Open a new Command Prompt and type:
+
+nginx
+Kopieren
+Bearbeiten
+ffmpeg -version
+→ You should see version info.

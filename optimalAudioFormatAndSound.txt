@@ -1,0 +1,33 @@
+
+Fomrat:
+
+| Parameter            | Empfehlung                                          | Erklärung                                               |
+| -------------------- | --------------------------------------------------- | ------------------------------------------------------- |
+| **Dateiformat**      | `WAV`                                               | Unkomprimiert, höchste Kompatibilität, kein D/A-Verlust |
+| **Bit-Tiefe**        | `16-bit`                                            | 16-bit reicht für Club				       |
+| **Samplerate**       | `44.1 kHz`                                          | Standard für alle CDJs/XDJs – höhere Raten unnötig      |
+| **Lautheit (LUFS)**  | `-14 LUFS`                                          | Optimal für Clublautstärke ohne Clipping                |
+| **True Peak (TP)**   | `-1.0 dBTP`                                         | Sicherer Abstand zur 0 dBFS Clippinggrenze              |
+| **Loudness Range**   | `max. LRA 11 LU`                                    | Kontrollierte Dynamik für gleichmäßige Clubwiedergabe   |
+| **Kanalanzahl**      | `Stereo` (2 Kanäle)                                 | Mono nicht empfohlen                                    |
+| **Kompression**      | Keine MP3, kein AAC, keine Limiter-Übernutzung      | Volle Dynamik, verlustfrei                              |
+| **Tags / Metadaten** | Minimal – CDJs lesen oft keine / verursachen Fehler | Keine Embedded Cover, kein unnötiger Text               |
+| **Normierung**       | Per EBU R128 / ffmpeg loudnorm empfohlen            | Konsistente Lautheit über Library hinweg                |
+
+
+
+Lautheit
+
+
+| Wert                     | Optimalbereich          | Warum wichtig                               |
+| ------------------------ | ----------------------- | ------------------------------------------- |
+| **Integrated Loudness**  | **-8 bis -9 LUFS**      | Laut, aber nicht überkomprimiert            |
+| **True Peak**            | **max. -1.0 dBTP**      | Kein Clipping auf D/A-Wandlern / CDJ/XDJ    |
+| **LRA (Loudness Range)** | **4–8 LU**              | Genug Dynamik für Druck, nicht zu flatternd |
+| **Threshold**            | *nur Analysewert*       | Kein Zielwert – nur Referenzpunkt           |
+| **Output Integrated**    | **-8.5 bis -9.5 LUFS**  | siehe oben                                  |
+| **Output True Peak**     | **≤ -1.0 dBTP**         | siehe oben                                  |
+| **Output LRA**           | **5–8 LU**              | natürliches, aber kontrolliertes Klangbild  |
+| **Normalization Type**   | **Dynamic oder Linear** | Dynamic = hochwertiger, transparenter       |
+| **Target Offset**        | **nahe 0.0 LU**         | je näher an 0, desto weniger Eingriff       |
+
